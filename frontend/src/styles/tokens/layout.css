@@ -1,0 +1,15 @@
+:root {
+  --layout-max: 1180px;
+  --layout-narrow: 760px;
+  --nav-height: 56px;
+  --nav-width: 232px;
+  --content-pad: var(--space-6);
+  --field-height: 40px;
+  --tap-target: 44px;   /* the smallest comfortable touch target */
+}
+
+@media (max-width: 720px) {
+  :root {
+    --content-pad: var(--space-4);
+  }
+}

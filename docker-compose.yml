@@ -1,0 +1,150 @@
+# ---------------------------------------------------------------------------
+# Self-hosted partner ledger.
+#
+#   cp .env.example .env   &&   edit it   &&   docker compose up -d --build
+#
+# Everything is served from a single origin (the `web` service) so the session
+# cookie works without CORS and receipt images are never exposed publicly.
+# ---------------------------------------------------------------------------
+
+name: partner-ledger
+
+services:
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+      # Romanian collation so ORDER BY on merchant names sorts diacritics right.
+      POSTGRES_INITDB_ARGS: "--encoding=UTF8"
+    volumes:
+      - db-data:/var/lib/postgresql/data
+    ports:
+      # Localhost only - do not expose the database to the network.
+      - "127.0.0.1:${POSTGRES_PORT:-5432}:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  ollama:
+    image: ollama/ollama:latest
+    restart: unless-stopped
+    volumes:
+      - ollama-models:/root/.ollama
+    # Ollama is reachable only from inside the compose network. Uncomment to
+    # poke at it from the host during debugging.
+    # ports:
+    #   - "127.0.0.1:11434:11434"
+    #
+    # --- GPU (NVIDIA) ------------------------------------------------------
+    # Uncomment this block if the server has an NVIDIA GPU and the container
+    # toolkit installed. Without it Ollama runs on CPU, which works but takes
+    # roughly 30-90s per receipt instead of 2-5s.
+    # deploy:
+    #   resources:
+    #     reservations:
+    #       devices:
+    #         - driver: nvidia
+    #           count: all
+    #           capabilities: [gpu]
+    healthcheck:
+      test: ["CMD-SHELL", "ollama list >/dev/null 2>&1 || exit 1"]
+      interval: 10s
+      timeout: 10s
+      retries: 30
+      start_period: 30s
+
+  # One-shot: downloads the vision model so the stack is usable straight after
+  # `up`. Exits 0 once the model is present; re-running is cheap and idempotent.
+  ollama-init:
+    image: ollama/ollama:latest
+    depends_on:
+      ollama:
+        condition: service_healthy
+    environment:
+      OLLAMA_HOST: http://ollama:11434
+      MODEL: ${OLLAMA_VISION_MODEL:-qwen2.5vl:7b}
+    entrypoint: ["/bin/sh", "-c"]
+    command:
+      - |
+        echo "Ensuring vision model '$$MODEL' is available..."
+        ollama pull "$$MODEL" && echo "Model ready."
+    restart: "no"
+
+  api:
+    build:
+      context: ./backend
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgresql+psycopg://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}
+      SECRET_KEY: ${SECRET_KEY}
+      ACCESS_TOKEN_EXPIRE_MINUTES: ${ACCESS_TOKEN_EXPIRE_MINUTES:-20160}
+      BOOTSTRAP_ADMIN_EMAIL: ${BOOTSTRAP_ADMIN_EMAIL}
+      BOOTSTRAP_ADMIN_PASSWORD: ${BOOTSTRAP_ADMIN_PASSWORD}
+      BOOTSTRAP_ADMIN_NAME: ${BOOTSTRAP_ADMIN_NAME:-Owner}
+      BASE_CURRENCY: ${BASE_CURRENCY:-RON}
+      SUPPORTED_CURRENCIES: ${SUPPORTED_CURRENCIES:-RON,EUR,USD}
+      OLLAMA_BASE_URL: ${OLLAMA_BASE_URL:-http://ollama:11434}
+      OLLAMA_VISION_MODEL: ${OLLAMA_VISION_MODEL:-qwen2.5vl:7b}
+      OLLAMA_TIMEOUT_SECONDS: ${OLLAMA_TIMEOUT_SECONDS:-300}
+      MAX_UPLOAD_MB: ${MAX_UPLOAD_MB:-25}
+      IMAGE_MAX_EDGE: ${IMAGE_MAX_EDGE:-1800}
+      STORAGE_DIR: /data/uploads
+      RUN_MIGRATIONS_ON_START: "true"
+    volumes:
+      - uploads:/data/uploads
+    healthcheck:
+      test: ["CMD-SHELL", "python -c \"import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://localhost:8000/api/health', timeout=3).status==200 else 1)\""]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 20s
+
+  # Separate process so a slow or wedged receipt scan can never block the API.
+  worker:
+    build:
+      context: ./backend
+    restart: unless-stopped
+    command: ["python", "-m", "app.worker"]
+    depends_on:
+      db:
+        condition: service_healthy
+      api:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgresql+psycopg://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}
+      SECRET_KEY: ${SECRET_KEY}
+      BASE_CURRENCY: ${BASE_CURRENCY:-RON}
+      SUPPORTED_CURRENCIES: ${SUPPORTED_CURRENCIES:-RON,EUR,USD}
+      OLLAMA_BASE_URL: ${OLLAMA_BASE_URL:-http://ollama:11434}
+      OLLAMA_VISION_MODEL: ${OLLAMA_VISION_MODEL:-qwen2.5vl:7b}
+      OLLAMA_TIMEOUT_SECONDS: ${OLLAMA_TIMEOUT_SECONDS:-300}
+      WORKER_POLL_SECONDS: ${WORKER_POLL_SECONDS:-5}
+      WORKER_MAX_ATTEMPTS: ${WORKER_MAX_ATTEMPTS:-3}
+      IMAGE_MAX_EDGE: ${IMAGE_MAX_EDGE:-1800}
+      STORAGE_DIR: /data/uploads
+      RUN_MIGRATIONS_ON_START: "false"
+    volumes:
+      - uploads:/data/uploads
+
+  web:
+    build:
+      context: ./frontend
+    restart: unless-stopped
+    depends_on:
+      api:
+        condition: service_healthy
+    ports:
+      - "${WEB_PORT:-8080}:80"
+
+volumes:
+  db-data:
+  ollama-models:
+  uploads:

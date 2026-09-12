@@ -1,0 +1,148 @@
+/* Colour tokens.
+ *
+ * Mirrors the file layout of the Aperture design system so importing the real
+ * token set later is a file swap rather than a restyle.
+ *
+ * Two semantic axes carry most of the meaning in this app:
+ *   --scope-*   whose money paid (business vs personal)
+ *   --status-*  how far a document has got through scanning
+ * They appear side by side on every row, so scope chips are solid-filled and
+ * status chips are outlined. The distinction survives greyscale and colour
+ * vision deficiency, which hue alone would not.
+ */
+
+:root {
+  /* neutrals - warm, so the app reads as paper rather than as a dashboard */
+  --color-bg: #faf9f7;
+  --color-surface: #ffffff;
+  --color-surface-raised: #ffffff;
+  --color-surface-sunken: #f2f1ee;
+  --color-border: #e2e0db;
+  --color-border-strong: #cbc8c1;
+
+  --color-text: #1a1d21;
+  --color-text-muted: #6b6f76;
+  --color-text-subtle: #93979e;
+  --color-text-inverse: #ffffff;
+
+  /* brand */
+  --color-accent: #0f766e;
+  --color-accent-hover: #115e59;
+  --color-accent-soft: #ccfbf1;
+  --color-accent-text: #0f766e;
+  --color-focus: #14b8a6;
+
+  /* whose money */
+  --scope-business: #2563eb;
+  --scope-business-soft: #dbeafe;
+  --scope-business-text: #1d4ed8;
+  --scope-personal: #7c3aed;
+  --scope-personal-soft: #ede9fe;
+  --scope-personal-text: #6d28d9;
+
+  /* document status */
+  --status-neutral: #6b7280;
+  --status-neutral-soft: #f3f4f6;
+  --status-info: #0284c7;
+  --status-info-soft: #e0f2fe;
+  --status-warn: #b45309;
+  --status-warn-soft: #fef3c7;
+  --status-good: #15803d;
+  --status-good-soft: #dcfce7;
+  --status-bad: #b91c1c;
+  --status-bad-soft: #fee2e2;
+
+  /* money direction */
+  --color-owed: #15803d;      /* the partnership owes them */
+  --color-owing: #b45309;     /* they owe the partnership */
+
+  --color-overlay: rgb(16 18 20 / 55%);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --color-bg: #0f1214;
+    --color-surface: #171b1f;
+    --color-surface-raised: #1d2227;
+    --color-surface-sunken: #12161a;
+    --color-border: #2a3036;
+    --color-border-strong: #3b434b;
+
+    --color-text: #e8eaed;
+    --color-text-muted: #9ba1a9;
+    --color-text-subtle: #6e757e;
+    --color-text-inverse: #0f1214;
+
+    --color-accent: #2dd4bf;
+    --color-accent-hover: #5eead4;
+    --color-accent-soft: #134e4a;
+    --color-accent-text: #5eead4;
+    --color-focus: #2dd4bf;
+
+    --scope-business: #60a5fa;
+    --scope-business-soft: #1e3a8a;
+    --scope-business-text: #bfdbfe;
+    --scope-personal: #a78bfa;
+    --scope-personal-soft: #4c1d95;
+    --scope-personal-text: #ddd6fe;
+
+    --status-neutral: #9ca3af;
+    --status-neutral-soft: #262b31;
+    --status-info: #38bdf8;
+    --status-info-soft: #0c4a6e;
+    --status-warn: #fbbf24;
+    --status-warn-soft: #451a03;
+    --status-good: #4ade80;
+    --status-good-soft: #14532d;
+    --status-bad: #f87171;
+    --status-bad-soft: #450a0a;
+
+    --color-owed: #4ade80;
+    --color-owing: #fbbf24;
+
+    --color-overlay: rgb(0 0 0 / 70%);
+  }
+}
+
+:root[data-theme="dark"] {
+  --color-bg: #0f1214;
+  --color-surface: #171b1f;
+  --color-surface-raised: #1d2227;
+  --color-surface-sunken: #12161a;
+  --color-border: #2a3036;
+  --color-border-strong: #3b434b;
+
+  --color-text: #e8eaed;
+  --color-text-muted: #9ba1a9;
+  --color-text-subtle: #6e757e;
+  --color-text-inverse: #0f1214;
+
+  --color-accent: #2dd4bf;
+  --color-accent-hover: #5eead4;
+  --color-accent-soft: #134e4a;
+  --color-accent-text: #5eead4;
+  --color-focus: #2dd4bf;
+
+  --scope-business: #60a5fa;
+  --scope-business-soft: #1e3a8a;
+  --scope-business-text: #bfdbfe;
+  --scope-personal: #a78bfa;
+  --scope-personal-soft: #4c1d95;
+  --scope-personal-text: #ddd6fe;
+
+  --status-neutral: #9ca3af;
+  --status-neutral-soft: #262b31;
+  --status-info: #38bdf8;
+  --status-info-soft: #0c4a6e;
+  --status-warn: #fbbf24;
+  --status-warn-soft: #451a03;
+  --status-good: #4ade80;
+  --status-good-soft: #14532d;
+  --status-bad: #f87171;
+  --status-bad-soft: #450a0a;
+
+  --color-owed: #4ade80;
+  --color-owing: #fbbf24;
+
+  --color-overlay: rgb(0 0 0 / 70%);
+}
